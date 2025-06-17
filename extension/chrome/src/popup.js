@@ -1,0 +1,31 @@
+// Update stats and recent items when popup opens
+document.addEventListener('DOMContentLoaded', async () => {
+  // Get tracked pages from storage
+  const { trackedPages = [] } = await chrome.storage.local.get(['trackedPages']);
+  
+  // Update stats
+  const articlesCount = trackedPages.filter(page => page.isArticle).length;
+  const videosCount = trackedPages.filter(page => page.isVideo).length;
+  
+  document.getElementById('articles-count').textContent = articlesCount;
+  document.getElementById('videos-count').textContent = videosCount;
+  
+  // Display recent items (last 5)
+  const recentItems = trackedPages.slice(-5).reverse();
+  const recentItemsContainer = document.getElementById('recent-items');
+  
+  recentItemsContainer.innerHTML = recentItems.map(item => `
+    <div class="item">
+      <div class="item-title">${item.title}</div>
+      <div class="item-url">${item.url}</div>
+    </div>
+  `).join('');
+});
+
+// Listen for updates from background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PAGE_TRACKED') {
+    // Refresh the popup data
+    location.reload();
+  }
+}); 
