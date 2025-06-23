@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('articles-count').textContent = articlesCount;
   document.getElementById('videos-count').textContent = videosCount;
   
-  // Display recent items (last 5)
-  const recentItems = trackedPages.slice(-5).reverse();
+  // Display recent items (last 5) that are articles or videos
+  const filteredItems = trackedPages.filter(item => item.isArticle || item.isVideo);
+  const recentItems = filteredItems.slice(-5).reverse();
   const recentItemsContainer = document.getElementById('recent-items');
   
   recentItemsContainer.innerHTML = recentItems.map(item => `

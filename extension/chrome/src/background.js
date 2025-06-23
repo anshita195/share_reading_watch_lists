@@ -46,6 +46,21 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PAGE_LOADED' && message.data) {
+    const pageData = message.data;
+    chrome.storage.local.get(['trackedPages'], (result) => {
+      const trackedPages = result.trackedPages || [];
+      trackedPages.push(pageData);
+      chrome.storage.local.set({ trackedPages }, () => {
+        // Optionally notify popup to refresh
+        chrome.runtime.sendMessage({ type: 'PAGE_TRACKED' });
+      });
+    });
+  }
+});
+
 // Initialize when extension is installed
 chrome.runtime.onInstalled.addListener(() => {
   initializeLLM();
