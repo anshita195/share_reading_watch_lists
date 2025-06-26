@@ -29,4 +29,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Refresh the popup data
     location.reload();
   }
+});
+
+// Export tracked data as JSON
+function exportTrackedData() {
+  chrome.storage.local.get(['trackedPages'], ({ trackedPages = [] }) => {
+    // Only export articles or videos
+    const filtered = trackedPages.filter(item => item.isArticle || item.isVideo);
+    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reading_watch_list.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const exportBtn = document.getElementById('export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportTrackedData);
+  }
 }); 
