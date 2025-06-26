@@ -18,13 +18,13 @@ const mockTrackedItems = [
     id: 3,
     type: 'article',
     title: '10 Must-Read Books for Developers',
-    summary: 'A curated list of books every developer should read to level up their skills.'
+    summary: ''
   },
   {
     id: 4,
     type: 'video',
     title: 'The Future of AI: Panel Discussion',
-    summary: 'Experts discuss the future of artificial intelligence and its societal impact.'
+    summary: ''
   }
 ];
 
@@ -38,10 +38,9 @@ export default function Profile() {
     reader.onload = (event) => {
       try {
         const imported = JSON.parse(event.target.result);
-        // Add fallback for missing summary
         setItems(imported.map((item, idx) => ({
           ...item,
-          summary: item.summary || '(No summary available)',
+          summary: typeof item.summary === 'string' ? item.summary : '',
           id: item.id || idx + 1
         })));
       } catch {
@@ -70,7 +69,9 @@ export default function Profile() {
               <CardContent>
                 <Chip label={item.type === 'article' ? 'Article' : 'Video'} color={item.type === 'article' ? 'primary' : 'secondary'} sx={{ mb: 1 }} />
                 <Typography variant="h6" gutterBottom>{item.title}</Typography>
-                <Typography variant="body2" color="text.secondary">{item.summary}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {item.summary && item.summary.trim() !== '' ? item.summary : <i>Summary coming soon...</i>}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
