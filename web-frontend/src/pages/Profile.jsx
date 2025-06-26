@@ -1,4 +1,5 @@
-import { Container, Typography, Paper, Grid, Card, CardContent, Chip } from '@mui/material';
+import { useState } from 'react';
+import { Container, Typography, Paper, Grid, Card, CardContent, Chip, Button } from '@mui/material';
 
 const mockTrackedItems = [
   {
@@ -28,6 +29,28 @@ const mockTrackedItems = [
 ];
 
 export default function Profile() {
+  const [items, setItems] = useState(mockTrackedItems);
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        // Add fallback for missing summary
+        setItems(imported.map((item, idx) => ({
+          ...item,
+          summary: item.summary || '(No summary available)',
+          id: item.id || idx + 1
+        })));
+      } catch {
+        alert('Invalid JSON file!');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <Container maxWidth="md" sx={{ textAlign: 'center', mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
@@ -35,9 +58,13 @@ export default function Profile() {
         <Typography variant="body1" color="text.secondary" gutterBottom>
           Your tracked articles and videos:
         </Typography>
+        <Button variant="contained" component="label" sx={{ mt: 2 }}>
+          Import List
+          <input type="file" accept="application/json" hidden onChange={handleImport} />
+        </Button>
       </Paper>
       <Grid container spacing={3} justifyContent="center">
-        {mockTrackedItems.map(item => (
+        {items.map(item => (
           <Grid item xs={12} sm={6} md={4} key={item.id}>
             <Card sx={{ minHeight: 180 }}>
               <CardContent>
