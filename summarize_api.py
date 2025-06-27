@@ -1,11 +1,8 @@
 from flask import Flask, request, jsonify
-import subprocess
+from llama_cpp import Llama
 
 app = Flask(__name__)
-
-# Update these paths to match your system!
-LLAMA_EXE = r'E:\llama.cpp\build\bin\Release\llama-cli.exe'
-MODEL_PATH = r'E:\llama.cpp\tinyllama-1.1b-chat-v1.0.Q4_0.gguf'
+llm = Llama(model_path="E:/tinyllama-1.1b-chat-v1.0.Q4_0.gguf", n_ctx=512)
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
@@ -13,17 +10,9 @@ def summarize():
     text = data.get('text', '')
     if not text:
         return jsonify({'error': 'No text provided'}), 400
-
-    prompt = f"Summarize: {text}"
-    try:
-        result = subprocess.run(
-            [LLAMA_EXE, '-m', MODEL_PATH, '-p', prompt, '-n', '128'],
-            capture_output=True, text=True, timeout=120
-        )
-        output = result.stdout.strip()
-        return jsonify({'summary': output})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    output = llm(f"Summarize: {text}", max_tokens=32, stop=["\n"])
+    summary = output["choices"][0]["text"]
+    return jsonify({'summary': summary})
 
 if __name__ == '__main__':
     app.run(port=5000)
