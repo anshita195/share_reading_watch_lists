@@ -30,6 +30,7 @@ const mockTrackedItems = [
 
 export default function Profile() {
   const [items, setItems] = useState(mockTrackedItems);
+  const [loading, setLoading] = useState(false);
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -50,6 +51,28 @@ export default function Profile() {
     reader.readAsText(file);
   };
 
+  const handleSummarizeAll = async () => {
+    setLoading(true);
+    const updatedItems = await Promise.all(items.map(async (item) => {
+      if (item.summary && item.summary.trim() !== '') return item;
+      try {
+        const response = await fetch('http://127.0.0.1:5000/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: item.title })
+        });
+        const data = await response.json();
+        console.log('Summary API response:', data);
+        return { ...item, summary: data.summary || '' };
+      } catch (err) {
+        console.error('Error summarizing:', err);
+        return { ...item, summary: 'Error summarizing.' };
+      }
+    }));
+    setItems(updatedItems);
+    setLoading(false);
+  };
+
   return (
     <Container maxWidth="md" sx={{ textAlign: 'center', mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
@@ -57,9 +80,12 @@ export default function Profile() {
         <Typography variant="body1" color="text.secondary" gutterBottom>
           Your tracked articles and videos:
         </Typography>
-        <Button variant="contained" component="label" sx={{ mt: 2 }}>
+        <Button variant="contained" component="label" sx={{ mt: 2, mr: 2 }}>
           Import List
           <input type="file" accept="application/json" hidden onChange={handleImport} />
+        </Button>
+        <Button variant="outlined" onClick={handleSummarizeAll} disabled={loading || items.every(item => item.summary && item.summary.trim() !== '')} sx={{ mt: 2 }}>
+          {loading ? 'Summarizing...' : 'Auto-Summarize All'}
         </Button>
       </Paper>
       <Grid container spacing={3} justifyContent="center">
