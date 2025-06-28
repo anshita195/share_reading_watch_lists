@@ -84,6 +84,3 @@ share_reading_watch_lists/
 - See issues or open a PR to contribute
 
 ---
-
-## 📄 License
-MIT 
