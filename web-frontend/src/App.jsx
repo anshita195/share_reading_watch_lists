@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
 import Feed from './pages/Feed';
 import Login from './pages/Login';
-import { AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField, IconButton } from '@mui/material';
+import LogoutIcon from '@mui/icons-material/Logout';
 import './App.css'
 
 function UsernamePrompt({ onSetUsername }) {
@@ -18,7 +19,12 @@ function UsernamePrompt({ onSetUsername }) {
   return (
     <Container maxWidth="sm" sx={{ mt: 12 }}>
       <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5" gutterBottom>Enter your username</Typography>
+        <Typography variant="h4" gutterBottom color="primary">
+          Welcome to Share Lists
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Enter your username to start tracking and sharing your reading and watch lists
+        </Typography>
         <form onSubmit={handleSubmit}>
           <TextField
             label="Username"
@@ -27,8 +33,11 @@ function UsernamePrompt({ onSetUsername }) {
             fullWidth
             autoFocus
             sx={{ mb: 2 }}
+            placeholder="Enter your username"
           />
-          <Button type="submit" variant="contained" fullWidth>Continue</Button>
+          <Button type="submit" variant="contained" fullWidth size="large">
+            Get Started
+          </Button>
         </form>
       </Paper>
     </Container>
@@ -36,19 +45,16 @@ function UsernamePrompt({ onSetUsername }) {
 }
 
 function App() {
-  const [username, setUsername] = useState(() => localStorage.getItem('username') || '');
+  const [username, setUsername] = useState('');
 
-  useEffect(() => {
-    if (username) {
-      localStorage.setItem('username', username);
-    }
-  }, [username]);
+  const handleLogout = () => {
+    setUsername('');
+  };
 
   if (!username) {
     return <UsernamePrompt onSetUsername={setUsername} />;
   }
 
-  // You can pass username as a prop or context to pages if needed
   return (
     <Router>
       <AppBar position="static">
@@ -56,10 +62,20 @@ function App() {
           <Typography variant="h6" component={RouterLink} to="/" sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
             Share Lists
           </Typography>
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="inherit" sx={{ mr: 1 }}>
+              Welcome, {username}!
+            </Typography>
             <Button color="inherit" component={RouterLink} to="/feed">Feed</Button>
             <Button color="inherit" component={RouterLink} to="/profile">Profile</Button>
-            <Button color="inherit" component={RouterLink} to="/login">Login</Button>
+            <IconButton 
+              color="inherit" 
+              onClick={handleLogout}
+              title="Logout"
+              sx={{ ml: 1 }}
+            >
+              <LogoutIcon />
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
@@ -67,7 +83,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/profile" element={<Profile username={username} />} />
         <Route path="/feed" element={<Feed />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login username={username} onLogout={handleLogout} onSetUsername={setUsername} />} />
       </Routes>
     </Router>
   );

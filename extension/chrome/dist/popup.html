@@ -50,12 +50,31 @@
       color: #666;
       word-break: break-all;
     }
+    .username-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .username-row input {
+      flex: 1;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+    .username-row button {
+      padding: 4px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Reading & Watch List Tracker</h2>
-    
+    <div class="username-row">
+      <input type="text" id="username-input" placeholder="Enter your username" />
+      <button id="save-username-btn">Save</button>
+    </div>
     <div class="stats">
       <div class="stat-item">
         <div class="stat-value" id="articles-count">0</div>
