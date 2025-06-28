@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Container, Typography, Paper, Grid, Card, CardContent, Chip, Button, CircularProgress, Alert } from '@mui/material';
 
-export default function Profile({ username }) {
+export default function Profile({ username: propUsername }) {
+  const params = useParams();
+  const username = propUsername || params.username;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summarizing, setSummarizing] = useState(false);
 
   useEffect(() => {
+    if (!username) {
+      setError('No username specified.');
+      setLoading(false);
+      return;
+    }
     async function fetchItems() {
       setLoading(true);
       setError(null);
@@ -17,7 +25,7 @@ export default function Profile({ username }) {
         const data = await res.json();
         setItems(data);
       } catch (err) {
-        setError('Could not load your tracked items.');
+        setError('Could not load tracked items.');
       }
       setLoading(false);
     }
@@ -47,13 +55,17 @@ export default function Profile({ username }) {
   return (
     <Container maxWidth="md" sx={{ textAlign: 'center', mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom>My Profile</Typography>
-        <Typography variant="body1" color="text.secondary" gutterBottom>
-          Your tracked articles and videos:
+        <Typography variant="h4" gutterBottom>
+          {propUsername ? 'My Profile' : `${username ? username + "'s" : ''} Profile`}
         </Typography>
-        <Button variant="outlined" onClick={handleSummarizeAll} disabled={summarizing || items.every(item => item.summary && item.summary.trim() !== '')} sx={{ mt: 2 }}>
-          {summarizing ? 'Summarizing...' : 'Auto-Summarize All'}
-        </Button>
+        <Typography variant="body1" color="text.secondary" gutterBottom>
+          {username ? `Tracked articles and videos for ${username}:` : 'No username specified.'}
+        </Typography>
+        {propUsername && (
+          <Button variant="outlined" onClick={handleSummarizeAll} disabled={summarizing || items.every(item => item.summary && item.summary.trim() !== '')} sx={{ mt: 2 }}>
+            {summarizing ? 'Summarizing...' : 'Auto-Summarize All'}
+          </Button>
+        )}
       </Paper>
       {loading && <CircularProgress sx={{ mt: 4 }} />}
       {error && <Alert severity="error" sx={{ mt: 4 }}>{error}</Alert>}
