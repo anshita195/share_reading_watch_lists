@@ -1,0 +1,11 @@
+# Ignore SQLite database
+app.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Node modules
+node_modules/
