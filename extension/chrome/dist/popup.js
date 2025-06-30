@@ -1,118 +1,97 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  // Username & password logic
-  const usernameInput = document.getElementById("username-input");
-  const passwordInput = document.getElementById("password-input");
-  const loginBtn = document.getElementById("login-btn");
+  const loginStatusDiv = document.getElementById("login-status");
   const logoutBtn = document.getElementById("logout-btn");
+  const loginLinkBtn = document.getElementById("login-link-btn");
+  
+  const setLoggedInUI = (username) => {
+    loginStatusDiv.textContent = `Logged in as: ${username}`;
+    loginStatusDiv.className = 'logged-in';
+    logoutBtn.style.display = '';
+    loginLinkBtn.style.display = 'none';
+  };
 
-  function setLoggedIn(username) {
-    chrome.storage.local.set({ username }, () => {
-      usernameInput.value = username;
-      passwordInput.value = '';
-      passwordInput.style.display = 'none';
-      loginBtn.style.display = 'none';
-      logoutBtn.style.display = '';
-    });
-  }
-  function setLoggedOut() {
-    chrome.storage.local.remove(["username"], () => {
-      usernameInput.value = '';
-      passwordInput.value = '';
-      passwordInput.style.display = '';
-      loginBtn.style.display = '';
-      logoutBtn.style.display = 'none';
-    });
-  }
+  const setLoggedOutUI = () => {
+    loginStatusDiv.textContent = 'You are not logged in.';
+    loginStatusDiv.className = 'logged-out';
+    logoutBtn.style.display = 'none';
+    loginLinkBtn.style.display = '';
+    // Clear stats and recent items when logged out
+    document.getElementById("articles-count").textContent = '0';
+    document.getElementById("videos-count").textContent = '0';
+    document.getElementById("recent-items").innerHTML = 'Please log in on the web app to see your items.';
+  };
 
-  // On load, check if logged in
-  chrome.storage.local.get(["username"], (result) => {
-    if (result.username) {
-      setLoggedIn(result.username);
-    } else {
-      setLoggedOut();
-    }
-  });
-
-  loginBtn.addEventListener("click", async () => {
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value;
-    if (!username || !password) {
-      alert("Please enter username and password.");
-      return;
-    }
+  const checkSession = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
+      const res = await fetch("http://localhost:5000/session", { credentials: "include" });
       if (res.ok) {
-        setLoggedIn(username);
-        alert("Logged in as " + username);
-        location.reload();
+        const data = await res.json();
+        if (data.logged_in && data.username) {
+          chrome.storage.local.set({ username: data.username });
+          setLoggedInUI(data.username);
+          updateTrackedItems(data.username);
+        } else {
+          chrome.storage.local.remove("username");
+          setLoggedOutUI();
+        }
       } else {
-        alert(data.error || "Login failed");
+        throw new Error('Session check failed');
       }
     } catch (err) {
-      alert("Login error: " + err);
+      chrome.storage.local.remove("username");
+      setLoggedOutUI();
+      loginStatusDiv.textContent = 'Error connecting to server.';
     }
+  };
+
+  const updateTrackedItems = async (username) => {
+    try {
+      const res = await fetch(`http://localhost:5000/user/${encodeURIComponent(username)}/items`, { credentials: "include" });
+      if (res.ok) {
+        const items = await res.json();
+        const articles = items.filter(e => e.type === 'article');
+        const videos = items.filter(e => e.type === 'video');
+        document.getElementById("articles-count").textContent = articles.length;
+        document.getElementById("videos-count").textContent = videos.length;
+        const recent = items.slice(-5).reverse();
+        document.getElementById("recent-items").innerHTML = recent.length > 0 ? recent.map(e => `
+          <div class="item">
+            <div class="item-title">${e.title}</div>
+            <div class="item-url">${e.url}</div>
+          </div>
+        `).join("") : 'No items tracked yet.';
+      } else {
+        document.getElementById("recent-items").innerHTML = 'Could not load items.';
+      }
+    } catch (err) {
+      document.getElementById("recent-items").innerHTML = 'Error loading items.';
+    }
+  };
+
+  loginLinkBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'http://localhost:5173/login' });
   });
 
   logoutBtn.addEventListener("click", async () => {
     try {
-      await fetch("http://127.0.0.1:5000/logout", { method: "GET", credentials: "include" });
+      await fetch("http://localhost:5000/logout", { method: "GET", credentials: "include" });
     } catch {}
-    setLoggedOut();
-    alert("Logged out");
-    location.reload();
+    chrome.storage.local.remove("username");
+    setLoggedOutUI();
+    // No need to reload, just update UI
   });
-
-  // Always show local tracked items, even if username is missing or backend is down
-  chrome.storage.local.get(["trackedPages", "username"], async (result) => {
-    let localItems = result.trackedPages || [];
-    let backendItems = [];
-    const username = result.username;
-    let allItems = [...localItems];
-    if (username) {
-      try {
-        const res = await fetch(`http://127.0.0.1:5000/user/${encodeURIComponent(username)}/items`, { credentials: "include" });
-        if (res.ok) {
-          backendItems = await res.json();
-          // Merge by URL (deduplicate)
-          allItems = [...localItems, ...backendItems].reduce((acc, item) => {
-            if (!acc.some(i => i.url === item.url)) acc.push(item);
-            return acc;
-          }, []);
-        }
-      } catch (err) {
-        // Backend unavailable, fallback to local only
-      }
-    }
-    const articles = allItems.filter(e => e.type === 'article' || e.isArticle);
-    const videos = allItems.filter(e => e.type === 'video' || e.isVideo);
-    document.getElementById("articles-count").textContent = articles.length;
-    document.getElementById("videos-count").textContent = videos.length;
-    const recent = allItems.filter(e => e.type === 'article' || e.type === 'video' || e.isArticle || e.isVideo).slice(-5).reverse();
-    document.getElementById("recent-items").innerHTML = recent.map(e => `
-      <div class="item">
-        <div class="item-title">${e.title}</div>
-        <div class="item-url">${e.url}</div>
-      </div>
-    `).join("");
-    if (!username) {
-      const warning = document.createElement('div');
-      warning.style.color = 'red';
-      warning.style.margin = '10px 0';
-      warning.textContent = 'Please log in to sync with the web app.';
-      document.body.insertBefore(warning, document.body.firstChild);
-    }
-  });
+  
+  // Initial check when popup opens
+  checkSession();
 });
 
 chrome.runtime.onMessage.addListener((e, t, n) => {
-  "PAGE_TRACKED" === e.type && location.reload();
+  // If a page is tracked while popup is open, refresh the items
+  if ("PAGE_TRACKED" === e.type) {
+    chrome.storage.local.get(["username"], (result) => {
+      if(result.username) updateTrackedItems(result.username);
+    });
+  }
 });
 
 //# sourceMappingURL=popup.js.map

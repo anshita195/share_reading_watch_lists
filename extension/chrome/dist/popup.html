@@ -13,6 +13,20 @@
       flex-direction: column;
       gap: 16px;
     }
+    #login-status {
+      padding: 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #login-status.logged-in {
+      background-color: #e8f5e9; /* Light green */
+      color: #2e7d32; /* Dark green */
+    }
+    #login-status.logged-out {
+      background-color: #ffebf0; /* Light red */
+      color: #c41c49; /* Dark red */
+    }
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -50,33 +64,27 @@
       color: #666;
       word-break: break-all;
     }
-    .username-row {
+    .actions {
       display: flex;
-      align-items: center;
+      justify-content: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-top: 8px;
     }
-    .username-row input {
-      flex: 1;
-      padding: 4px 8px;
-      font-size: 14px;
-    }
-    .username-row button {
-      padding: 4px 12px;
+    .actions button {
+      padding: 8px 16px;
       font-size: 14px;
       cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Reading & Watch List Tracker</h2>
-    <div class="username-row">
-      <input type="text" id="username-input" placeholder="Enter your username" />
-      <input type="password" id="password-input" placeholder="Password" />
-      <button id="login-btn">Login</button>
-      <button id="logout-btn" style="display:none;">Logout</button>
-    </div>
+    
+    <div id="login-status">Checking status...</div>
+
     <div class="stats">
       <div class="stat-item">
         <div class="stat-value" id="articles-count">0</div>
@@ -88,6 +96,14 @@
       </div>
     </div>
 
+    <div class="actions">
+      <button id="logout-btn" style="display:none;">Logout</button>
+      <button id="login-link-btn" style="display:none;">Login on Web App</button>
+    </div>
+
+    <hr/>
+
+    <h4>Recently Tracked</h4>
     <div class="recent-items" id="recent-items">
       <!-- Items will be populated by JavaScript -->
     </div>
