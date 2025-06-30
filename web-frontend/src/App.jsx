@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
@@ -8,51 +8,39 @@ import { AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField, 
 import LogoutIcon from '@mui/icons-material/Logout';
 import './App.css'
 
-function UsernamePrompt({ onSetUsername }) {
-  const [input, setInput] = useState('');
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim()) {
-      onSetUsername(input.trim());
-    }
-  };
-  return (
-    <Container maxWidth="sm" sx={{ mt: 12 }}>
-      <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom color="primary">
-          Welcome to Share Lists
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Enter your username to start tracking and sharing your reading and watch lists
-        </Typography>
-        <form onSubmit={handleSubmit}>
-          <TextField
-            label="Username"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            fullWidth
-            autoFocus
-            sx={{ mb: 2 }}
-            placeholder="Enter your username"
-          />
-          <Button type="submit" variant="contained" fullWidth size="large">
-            Get Started
-          </Button>
-        </form>
-      </Paper>
-    </Container>
-  );
-}
-
 function App() {
   const [username, setUsername] = useState('');
+
+  // Sync frontend username with backend session on load
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/session', { credentials: 'include' });
+        const data = await res.json();
+        if (data.logged_in && data.username) {
+          setUsername(data.username);
+        } else {
+          setUsername('');
+        }
+      } catch (err) {
+        setUsername('');
+      }
+    };
+    checkSession();
+  }, []);
 
   const handleLogout = () => {
     setUsername('');
   };
 
   if (!username) {
-    return <UsernamePrompt onSetUsername={setUsername} />;
+    return (
+      <Router>
+        <Routes>
+          <Route path="*" element={<Login username={username} onLogout={handleLogout} onSetUsername={setUsername} />} />
+        </Routes>
+      </Router>
+    );
   }
 
   return (
@@ -83,7 +71,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/profile" element={<Profile username={username} />} />
         <Route path="/profile/:username" element={<Profile />} />
-        <Route path="/feed" element={<Feed />} />
+        <Route path="/feed" element={<Feed username={username} />} />
         <Route path="/login" element={<Login username={username} onLogout={handleLogout} onSetUsername={setUsername} />} />
       </Routes>
     </Router>

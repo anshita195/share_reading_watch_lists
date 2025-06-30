@@ -178,5 +178,139 @@ def logout():
     return jsonify({'message': 'Logged out'})
 # --- End Auth Endpoints ---
 
+# --- Follow System Endpoints ---
+@app.route('/follow/<username>', methods=['POST'])
+def follow_user(username):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    user_to_follow = User.query.filter_by(username=username).first()
+    if not user_to_follow:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if user_to_follow.id == session['user_id']:
+        return jsonify({'error': 'Cannot follow yourself'}), 400
+    
+    # Check if already following
+    existing_follow = Follow.query.filter_by(
+        follower_id=session['user_id'], 
+        followed_id=user_to_follow.id
+    ).first()
+    
+    if existing_follow:
+        return jsonify({'error': 'Already following this user'}), 400
+    
+    new_follow = Follow(follower_id=session['user_id'], followed_id=user_to_follow.id)
+    db.session.add(new_follow)
+    db.session.commit()
+    
+    return jsonify({'message': f'Now following {username}'})
+
+@app.route('/unfollow/<username>', methods=['POST'])
+def unfollow_user(username):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    user_to_unfollow = User.query.filter_by(username=username).first()
+    if not user_to_unfollow:
+        return jsonify({'error': 'User not found'}), 404
+    
+    follow = Follow.query.filter_by(
+        follower_id=session['user_id'], 
+        followed_id=user_to_unfollow.id
+    ).first()
+    
+    if not follow:
+        return jsonify({'error': 'Not following this user'}), 400
+    
+    db.session.delete(follow)
+    db.session.commit()
+    
+    return jsonify({'message': f'Unfollowed {username}'})
+
+@app.route('/followers/<username>', methods=['GET'])
+def get_followers(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    followers = user.followers.all()
+    return jsonify([{
+        'id': f.follower.id,
+        'username': f.follower.username
+    } for f in followers])
+
+@app.route('/following/<username>', methods=['GET'])
+def get_following(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    following = user.following.all()
+    return jsonify([{
+        'id': f.followed.id,
+        'username': f.followed.username
+    } for f in following])
+
+@app.route('/feed', methods=['GET'])
+def get_feed():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    # Get users that the current user is following
+    following = Follow.query.filter_by(follower_id=session['user_id']).all()
+    followed_ids = [f.followed_id for f in following]
+    
+    # Get items from followed users
+    items = Item.query.filter(Item.user_id.in_(followed_ids)).order_by(Item.timestamp.desc()).limit(50).all()
+    
+    result = []
+    for item in items:
+        result.append({
+            'id': item.id,
+            'title': item.title,
+            'type': item.type,
+            'url': item.url,
+            'summary': item.summary,
+            'username': item.user.username,
+            'timestamp': item.timestamp.isoformat()
+        })
+    
+    return jsonify(result)
+
+@app.route('/is_following/<username>', methods=['GET'])
+def is_following(username):
+    if 'user_id' not in session:
+        return jsonify({'following': False})
+    
+    user_to_check = User.query.filter_by(username=username).first()
+    if not user_to_check:
+        return jsonify({'following': False})
+    
+    follow = Follow.query.filter_by(
+        follower_id=session['user_id'], 
+        followed_id=user_to_check.id
+    ).first()
+    
+    return jsonify({'following': follow is not None})
+
+@app.route('/session', methods=['GET'])
+def check_session():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        return jsonify({
+            'logged_in': True,
+            'user_id': session['user_id'],
+            'username': session.get('username'),
+            'user': {
+                'id': user.id,
+                'username': user.username
+            } if user else None
+        })
+    else:
+        return jsonify({'logged_in': False})
+
+# --- End Follow System Endpoints ---
+
 if __name__ == '__main__':
     app.run(port=5000)
