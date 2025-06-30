@@ -2,6 +2,10 @@
 
 Forget less, learn more. This project is a website and browser extension that automatically logs your watched videos and read articles, then uses a local LLM to summarize and store them, creating a public showcase of your intellectual footprint.
 
+## Why is this different?
+
+While many tools like Notion or Substack can be used to manually curate content, this project is built on the principle of **zero manual input**. It acts as an automated, intelligent layer on top of your browsing, creating a rich, shareable profile of your intellectual journey without any extra effort. All processing happens **locally**, ensuring your data remains private.
+
 ## 🚀 Core Features
 
 - **Automated Tracking**: A browser extension intelligently tracks articles and videos in the background.
@@ -9,6 +13,7 @@ Forget less, learn more. This project is a website and browser extension that au
 - **Public Profiles & Feed**: Share your reading list and follow other users to see what they're consuming.
 - **Full User Control**: Secure user accounts with the ability to delete any tracked item.
 - **Seamless Login**: Session is synchronized between the web app and the browser extension.
+- **Duplicate Prevention**: Intelligently identifies and ignores duplicate content, even with different URL parameters (e.g., YouTube timestamps).
 
 ## 🛠️ Setup & Installation
 
@@ -30,8 +35,7 @@ The backend consists of two servers: the main API and the LLM worker.
 **a. Clone the repository:**
 
 ```bash
-git clone <repository_url>
-cd share_reading_watch_lists
+git clone <repository_url> && cd share_reading_watch_lists
 ```
 
 **b. Set up a Python virtual environment:**
@@ -60,16 +64,15 @@ pip install -r requirements.txt
 This project requires a local language model in `GGUF` format.
 
 - **Download this recommended model**: [TinyLlama-1.1B-Chat-v1.0.Q4_K_M.gguf](https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf) (~637 MB)
-- **Place the downloaded `.gguf` file** in the root directory of the project.
-- **Rename it to**: `tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` (to match the path in `llama_worker.py`).
+- **Place the downloaded `.gguf` file** in the project's root directory.
+- **Ensure the filename matches** the `MODEL_PATH` in `llama_worker.py`.
 
 ### 2. Frontend Setup
 
 In a new terminal, navigate to the `web-frontend` directory and install the dependencies.
 
 ```bash
-cd web-frontend
-npm install
+cd web-frontend && npm install
 ```
 
 ### 3. Chrome Extension Setup
@@ -82,7 +85,7 @@ The extension is pre-built in the `extension/chrome/dist` folder. You just need 
 4.  Select the `extension/chrome/dist` folder from this project.
 5.  The extension should now appear in your browser's toolbar.
 
-## 📖 How to Run the Application
+## 📖 How to Run for Testing
 
 You need to have **three separate terminals** running simultaneously.
 
@@ -92,23 +95,37 @@ In your first terminal (with the Python virtual environment activated):
 ```bash
 python llama_worker.py
 ```
-*(Wait until you see the "Model loaded successfully" message.)*
+*(Wait for the "Model loaded successfully" message.)*
 
-**2. Start the Main Backend API:**
+**2. Start the Main Backend API & Initialize Database:**
 In a second terminal (with the Python virtual environment activated):
 
 ```bash
 python summarize_api.py
 ```
-*(On first run, this will create the `app.db` file.)*
+*(This will create the `instance/app.db` file on its first run.)*
 
 **3. Start the Frontend:**
-In your third terminal, from the `web-frontend` directory:
+In your third terminal (from the `web-frontend` directory):
 
 ```bash
 npm run dev
 ```
-You can now access the web application at **http://localhost:5173**.
+You can now access the web application at **http://localhost:5173**. Register a user and start browsing!
+
+## 💡 Assumptions & Future Work
+
+### Assumptions
+- The application is run on a local machine, not a production server.
+- The user's machine has sufficient RAM (~4GB free) to load the language model.
+- The LLM and prompts are optimized for content in English.
+
+### Potential Future Features
+- **True Article Scraping**: Instead of summarizing based on title alone, the backend could scrape the text content of articles for vastly improved summary quality.
+- **Video Transcript Summarization**: For platforms like YouTube, fetch the video transcript to provide an actual summary of the video's content.
+- **Smarter Content Filtering**: Use the LLM to perform an initial "quality check" on content *before* it's tracked to filter out low-value pages automatically.
+- **Batch Summarization**: A "Summarize All" button on the profile page to process any items that were tracked while the LLM worker was offline.
+- **Cloud Deployment Guide**: Instructions for deploying the application to a cloud service for a publicly hosted version, potentially with a more powerful GPU-backed LLM.
 
 ## 🔧 Project Structure
 
