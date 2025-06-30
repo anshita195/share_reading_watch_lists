@@ -19,7 +19,7 @@ export default function Login({ username, onLogout, onSetUsername }) {
     setSuccess('');
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/${mode}`, {
+      const res = await fetch(`http://localhost:5000/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -44,7 +44,7 @@ export default function Login({ username, onLogout, onSetUsername }) {
     setError('');
     setSuccess('');
     try {
-      await fetch('http://127.0.0.1:5000/logout', { method: 'GET', credentials: 'include' });
+      await fetch('http://localhost:5000/logout', { method: 'GET', credentials: 'include' });
       onLogout();
     } catch {
       setError('Logout failed');

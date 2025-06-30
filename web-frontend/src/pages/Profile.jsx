@@ -30,7 +30,7 @@ export default function Profile({ username: propUsername }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/user/${encodeURIComponent(username)}/items`);
+      const res = await fetch(`http://localhost:5000/user/${encodeURIComponent(username)}/items`);
       if (!res.ok) throw new Error('Failed to fetch items');
       const data = await res.json();
       setItems(data);
@@ -42,7 +42,7 @@ export default function Profile({ username: propUsername }) {
 
   const fetchFollowStatus = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/is_following/${encodeURIComponent(username)}`, { credentials: 'include' });
+      const res = await fetch(`http://localhost:5000/is_following/${encodeURIComponent(username)}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setIsFollowing(data.following);
@@ -55,8 +55,8 @@ export default function Profile({ username: propUsername }) {
   const fetchFollowCounts = async () => {
     try {
       const [followersRes, followingRes] = await Promise.all([
-        fetch(`http://127.0.0.1:5000/followers/${encodeURIComponent(username)}`),
-        fetch(`http://127.0.0.1:5000/following/${encodeURIComponent(username)}`)
+        fetch(`http://localhost:5000/followers/${encodeURIComponent(username)}`),
+        fetch(`http://localhost:5000/following/${encodeURIComponent(username)}`)
       ]);
       
       if (followersRes.ok) {
@@ -74,7 +74,7 @@ export default function Profile({ username: propUsername }) {
 
   const handleFollow = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/follow/${encodeURIComponent(username)}`, {
+      const res = await fetch(`http://localhost:5000/follow/${encodeURIComponent(username)}`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -89,7 +89,7 @@ export default function Profile({ username: propUsername }) {
 
   const handleUnfollow = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/unfollow/${encodeURIComponent(username)}`, {
+      const res = await fetch(`http://localhost:5000/unfollow/${encodeURIComponent(username)}`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -107,7 +107,7 @@ export default function Profile({ username: propUsername }) {
     const updatedItems = await Promise.all(items.map(async (item) => {
       if (item.summary && item.summary.trim() !== '') return item;
       try {
-        const response = await fetch('http://127.0.0.1:5000/summarize', {
+        const response = await fetch('http://localhost:5000/summarize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: item.title })

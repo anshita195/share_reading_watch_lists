@@ -15,7 +15,7 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/session', { credentials: 'include' });
+        const res = await fetch('http://localhost:5000/session', { credentials: 'include' });
         const data = await res.json();
         if (data.logged_in && data.username) {
           setUsername(data.username);
@@ -29,8 +29,14 @@ function App() {
     checkSession();
   }, []);
 
-  const handleLogout = () => {
-    setUsername('');
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:5000/logout', { method: 'GET', credentials: 'include' });
+    } catch (err) {
+      console.error('Logout request failed', err);
+    } finally {
+      setUsername('');
+    }
   };
 
   if (!username) {
@@ -71,7 +77,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/profile" element={<Profile username={username} />} />
         <Route path="/profile/:username" element={<Profile />} />
-        <Route path="/feed" element={<Feed username={username} />} />
+        <Route path="/feed" element={<Feed username={username} onLogout={handleLogout} />} />
         <Route path="/login" element={<Login username={username} onLogout={handleLogout} onSetUsername={setUsername} />} />
       </Routes>
     </Router>

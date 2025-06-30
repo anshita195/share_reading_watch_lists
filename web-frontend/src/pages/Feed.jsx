@@ -3,7 +3,7 @@ import { Container, Typography, Paper, Grid, Card, CardContent, Chip, Button, Ci
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 
-export default function Feed({ username }) {
+export default function Feed({ username, onLogout }) {
   const [feedItems, setFeedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,63 +12,60 @@ export default function Feed({ username }) {
   const [following, setFollowing] = useState([]);
 
   useEffect(() => {
-    if (!username) {
-      setError('Please log in to view your feed');
-      setLoading(false);
-      return;
-    }
-    
-    // Check if session is valid
-    const checkSession = async () => {
+    let isMounted = true;
+
+    const loadFeedData = async () => {
+      if (!username) {
+        setError('Please log in to view your feed.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
       try {
-        const res = await fetch('http://127.0.0.1:5000/session', { credentials: 'include' });
-        const data = await res.json();
-        console.log('Session check:', data);
-        if (!data.logged_in) {
-          setError('Session expired. Please log in again.');
-          setLoading(false);
+        const [feedRes, followingRes] = await Promise.all([
+          fetch('http://localhost:5000/feed', { credentials: 'include' }),
+          fetch(`http://localhost:5000/following/${encodeURIComponent(username)}`, { credentials: 'include' })
+        ]);
+
+        if (!isMounted) return;
+
+        if (feedRes.status === 401) {
+          onLogout();
           return;
         }
+
+        if (!feedRes.ok || !followingRes.ok) {
+          throw new Error('Failed to load feed data.');
+        }
+
+        const feedData = await feedRes.json();
+        const followingData = await followingRes.json();
+
+        if (isMounted) {
+          setFeedItems(feedData);
+          setFollowing(followingData.map(u => u.username));
+        }
       } catch (err) {
-        console.error('Session check failed:', err);
+        if (isMounted) setError(err.message);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
-    
-    checkSession();
-    fetchFeed();
-    fetchFollowing();
-  }, [username]);
 
-  const fetchFeed = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('http://127.0.0.1:5000/feed', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch feed');
-      const data = await res.json();
-      setFeedItems(data);
-    } catch (err) {
-      setError('Could not load feed.');
-    }
-    setLoading(false);
-  };
+    loadFeedData();
 
-  const fetchFollowing = async () => {
-    try {
-      const res = await fetch(`http://127.0.0.1:5000/following/${encodeURIComponent(username)}`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setFollowing(data.map(u => u.username));
-      }
-    } catch (err) {
-      console.error('Failed to fetch following:', err);
-    }
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [username, onLogout]);
 
   const searchUsers = async () => {
     if (!searchUsername.trim()) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/user/${encodeURIComponent(searchUsername)}/items`, { credentials: 'include' });
+      const res = await fetch(`http://localhost:5000/user/${encodeURIComponent(searchUsername)}/items`, { credentials: 'include' });
       if (res.ok) {
         const items = await res.json();
         if (items.length > 0) {
@@ -87,7 +84,7 @@ export default function Feed({ username }) {
   const handleFollow = async (targetUsername) => {
     console.log('Attempting to follow:', targetUsername);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/follow/${encodeURIComponent(targetUsername)}`, {
+      const res = await fetch(`http://localhost:5000/follow/${encodeURIComponent(targetUsername)}`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -109,7 +106,7 @@ export default function Feed({ username }) {
 
   const handleUnfollow = async (targetUsername) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/unfollow/${encodeURIComponent(targetUsername)}`, {
+      const res = await fetch(`http://localhost:5000/unfollow/${encodeURIComponent(targetUsername)}`, {
         method: 'POST',
         credentials: 'include'
       });
