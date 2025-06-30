@@ -6,6 +6,7 @@ import logging
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse, parse_qs
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Change this in production
@@ -92,22 +93,52 @@ def add_item():
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    prompt = f"Summarize: {data['title']} {data.get('url', '')}"
+    
+    # --- Normalize URL and Check for Duplicates ---
+    original_url = data.get('url')
+    url_to_check = original_url
+
+    if url_to_check:
+        try:
+            # Normalize YouTube URLs
+            parsed_url = urlparse(url_to_check)
+            if 'youtube.com' in parsed_url.hostname or 'youtu.be' in parsed_url.hostname:
+                if 'v' in parse_qs(parsed_url.query):
+                    video_id = parse_qs(parsed_url.query)['v'][0]
+                    url_to_check = f"https://www.youtube.com/watch?v={video_id}"
+        except Exception as e:
+            app.logger.error(f"URL parsing failed for {url_to_check}: {e}")
+            # Continue with the original URL if parsing fails
+
+        existing_item = Item.query.filter_by(user_id=user.id, url=url_to_check).first()
+        if existing_item:
+            app.logger.info(f"Item already tracked for user {username}: {url_to_check}")
+            return jsonify({'message': 'Item already tracked'}), 200
+
     summary = ''
     try:
-        resp = requests.post('http://127.0.0.1:5001/summarize', json={'prompt': prompt}, timeout=30)
+        # Call the local LLM worker for summarization
+        payload = {
+            'title': data['title'], 
+            'url': original_url,
+            'type': data['type']
+        }
+        resp = requests.post('http://localhost:5001/summarize', json=payload, timeout=90)
+        
         if resp.ok:
-            summary = resp.json().get('summary', '')
+            summary = resp.json().get('summary', 'No summary available.')
         else:
-            summary = 'Error summarizing.'
-    except Exception as e:
-        app.logger.error("Error during summarization:", exc_info=True)
-        summary = 'Error summarizing.'
+            app.logger.warning(f"Summarization failed with status {resp.status_code}: {resp.text}")
+            summary = 'Could not generate summary.'
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error connecting to summarization worker: {e}")
+        summary = 'Summarization service is unavailable.'
+
     new_item = Item(
         user_id=user.id,
         title=data['title'],
         type=data['type'],
-        url=data.get('url', ''),
+        url=url_to_check, # Save the normalized URL
         summary=summary
     )
     db.session.add(new_item)

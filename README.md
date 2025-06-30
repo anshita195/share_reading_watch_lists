@@ -1,171 +1,128 @@
 # Share Reading & Watch Lists
 
-A browser extension and web app that automatically tracks and shares your reading and watching history with intelligent content filtering and local LLM summarization.
+Forget less, learn more. This project is a website and browser extension that automatically logs your watched videos and read articles, then uses a local LLM to summarize and store them, creating a public showcase of your intellectual footprint.
 
-## 🚀 Features
+## 🚀 Core Features
 
-### Core Functionality
-- **Automatic Content Tracking**: Browser extension automatically detects and tracks articles and videos you visit
-- **Intelligent Content Filtering**: Uses local LLM to automatically identify high-quality, meaningful content worth sharing
-- **Local LLM Summarization**: Generates summaries using TinyLlama running locally on your machine
-- **Social Features**: Follow other users and see what they're reading/watching in your feed
-- **Public Profiles**: Share your intellectual footprint with others
+- **Automated Tracking**: A browser extension intelligently tracks articles and videos in the background.
+- **Local LLM Summarization**: Uses a locally-run language model (via `llama.cpp`) to generate concise summaries. No external API keys needed.
+- **Public Profiles & Feed**: Share your reading list and follow other users to see what they're consuming.
+- **Full User Control**: Secure user accounts with the ability to delete any tracked item.
+- **Seamless Login**: Session is synchronized between the web app and the browser extension.
 
-### Browser Extension
-- **Seamless Tracking**: Works in the background, no manual input required
-- **Quality Detection**: Only tracks high-quality content (filters out social media, ads, low-quality content)
-- **Login Integration**: Syncs with your web app account
-- **Real-time Updates**: Shows recent tracked items in popup
+## 🛠️ Setup & Installation
 
-### Web Application
-- **Modern UI**: Built with React and Material-UI
-- **User Authentication**: Secure login/register system
-- **Profile Pages**: View your own and others' reading/watch lists
-- **Social Feed**: See content from people you follow
-- **User Discovery**: Search and follow other users
-- **Auto-Summarization**: Generate summaries for all tracked content
-
-## 🛠️ Setup
+This project consists of three main parts that need to be set up: the **Backend**, the **Frontend**, and the **Chrome Extension**.
 
 ### Prerequisites
-- Python 3.8+
-- Node.js 16+
-- Chrome browser
-- 4GB+ RAM (for LLM)
 
-### 1. Backend Setup
+- [Python 3.8+](https://www.python.org/downloads/)
+- [Node.js 16+](https://nodejs.org/) (which includes `npm`)
+- A C++ compiler (required by `llama-cpp-python` for building the model engine).
+  - **Windows**: Install [Visual Studio with C++ development tools](https://visualstudio.microsoft.com/downloads/).
+  - **macOS**: Install Xcode Command Line Tools (`xcode-select --install`).
+  - **Linux**: Install a C++ compiler via your package manager (e.g., `sudo apt-get install build-essential`).
+
+### 1. Backend & LLM Setup
+
+The backend consists of two servers: the main API and the LLM worker.
+
+**a. Clone the repository:**
 
 ```bash
-# Install Python dependencies
-pip install flask flask-cors flask-sqlalchemy werkzeug requests llama-cpp-python
-
-# Download TinyLlama model (if not already downloaded)
-# Place tinyllama-1.1b-chat-v1.0.Q4_0.gguf in the project root
-
-# Initialize database
-python summarize_api.py
-# Visit http://127.0.0.1:5000/initdb
-
-# Start the main API server
-python summarize_api.py
-
-# In another terminal, start the LLM worker
-python llama_worker.py
+git clone <repository_url>
+cd share_reading_watch_lists
 ```
 
+**b. Set up a Python virtual environment:**
+
+```bash
+# Create a virtual environment
+python -m venv venv
+
+# Activate it
+# Windows
+venv\\Scripts\\activate
+# macOS/Linux
+source venv/bin/activate
+```
+
+**c. Install Python dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+*(Note: If you don't have a `requirements.txt` file, you can create one or install packages manually: `pip install Flask Flask-Cors Flask-SQLAlchemy Werkzeug requests llama-cpp-python`)*
+
+**d. Download the Language Model:**
+
+This project requires a local language model in `GGUF` format.
+
+- **Download this recommended model**: [TinyLlama-1.1B-Chat-v1.0.Q4_K_M.gguf](https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf) (~637 MB)
+- **Place the downloaded `.gguf` file** in the root directory of the project.
+- **Rename it to**: `tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` (to match the path in `llama_worker.py`).
+
 ### 2. Frontend Setup
+
+In a new terminal, navigate to the `web-frontend` directory and install the dependencies.
 
 ```bash
 cd web-frontend
 npm install
-npm run dev
 ```
 
-### 3. Browser Extension Setup
+### 3. Chrome Extension Setup
+
+The extension is pre-built in the `extension/chrome/dist` folder. You just need to load it into Chrome.
+
+1.  Open Chrome and navigate to `chrome://extensions`.
+2.  Enable **"Developer mode"** using the toggle in the top-right corner.
+3.  Click the **"Load unpacked"** button.
+4.  Select the `extension/chrome/dist` folder from this project.
+5.  The extension should now appear in your browser's toolbar.
+
+## 📖 How to Run the Application
+
+You need to have **three separate terminals** running simultaneously.
+
+**1. Start the LLM Worker:**
+In your first terminal (with the Python virtual environment activated):
 
 ```bash
-cd extension/chrome
-npm install
-npm run build
+python llama_worker.py
 ```
+*(Wait until you see the "Model loaded successfully" message.)*
 
-Then load the extension in Chrome:
-1. Go to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `extension/chrome/dist` folder
+**2. Start the Main Backend API:**
+In a second terminal (with the Python virtual environment activated):
 
-## 📖 Usage
+```bash
+python summarize_api.py
+```
+*(On first run, this will create the `app.db` file.)*
 
-### Getting Started
-1. **Register/Login**: Create an account on the web app
-2. **Login to Extension**: Use the same credentials in the browser extension
-3. **Start Browsing**: The extension will automatically track high-quality content
-4. **View Your Profile**: See your tracked items and summaries on the web app
-5. **Follow Others**: Discover and follow other users to see their content
+**3. Start the Frontend:**
+In your third terminal, from the `web-frontend` directory:
 
-### Features in Action
+```bash
+npm run dev
+```
+You can now access the web application at **http://localhost:5173**.
 
-#### Automatic Content Detection
-- Visit any article or video
-- Extension automatically evaluates content quality using LLM
-- Only high-quality content gets added to your list
-- No manual curation required
+## 🔧 Project Structure
 
-#### Social Features
-- **Follow Users**: Click the follow button on any user's profile
-- **Discover Content**: Use the search in the Feed page to find users
-- **View Feed**: See content from people you follow in your personalized feed
-- **Public Profiles**: Share your profile URL with others
-
-#### Content Management
-- **Auto-Summarization**: Click "Auto-Summarize All" to generate summaries
-- **View Original**: Click links to visit the original content
-- **Filter by Type**: See articles and videos separately
-
-## 🔧 Technical Details
-
-### Architecture
-- **Backend**: Flask API with SQLAlchemy database
-- **LLM Service**: Separate Flask service running TinyLlama
-- **Frontend**: React with Material-UI
-- **Extension**: Chrome extension with background/content scripts
-- **Database**: SQLite with User, Item, and Follow models
-
-### LLM Integration
-- **Model**: TinyLlama 1.1B Chat (GGUF format)
-- **Quality Detection**: Evaluates content worthiness before tracking
-- **Summarization**: Generates concise summaries of tracked content
-- **Local Processing**: No external API calls, everything runs locally
-
-### Data Flow
-1. User visits webpage → Extension detects content
-2. Extension calls LLM to evaluate quality
-3. If high-quality → Sends to backend API
-4. Backend stores in database and generates summary
-5. Web app displays content with summaries
-6. Other users can follow and see content in their feed
-
-## 🎯 Problem Solved
-
-**Before**: People read articles and watch videos, but there's no easy way to showcase what they're consuming. Manual tools like Notion require effort.
-
-**After**: 
-- **Zero Manual Input**: Extension automatically tracks everything
-- **Quality Filtering**: LLM automatically picks out meaningful content
-- **Social Sharing**: Public profiles let others see your intellectual footprint
-- **Discovery**: Follow others to discover new content
-- **Effortless**: Build your reading/watch list with zero manual curation
-
-## 🔒 Privacy & Security
-
-- **Local LLM**: All content evaluation happens locally
-- **User Control**: Choose what to share publicly
-- **Secure Authentication**: Password hashing and session management
-- **No External APIs**: Everything runs on your machine
-
-## 🚧 Development
-
-### Project Structure
 ```
 share_reading_watch_lists/
-├── extension/chrome/          # Browser extension
-├── web-frontend/             # React web app
-├── summarize_api.py          # Main Flask API
-├── llama_worker.py           # LLM service
-└── README.md
+├── extension/chrome/dist/    # Pre-built Chrome extension files
+├── web-frontend/             # React web application source
+├── instance/                 # SQLite database storage
+├── venv/                     # Python virtual environment
+├── llama_worker.py           # Local LLM server (summarization)
+├── summarize_api.py          # Main Flask API (auth, data)
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
 ```
-
-### Key Files
-- `summarize_api.py`: Main API with auth, follow system, item management
-- `llama_worker.py`: LLM service for quality detection and summarization
-- `web-frontend/src/pages/`: React components for UI
-- `extension/chrome/dist/`: Built extension files
-
-### Adding Features
-- **New API Endpoints**: Add to `summarize_api.py`
-- **UI Components**: Add to `web-frontend/src/pages/`
-- **Extension Features**: Modify `extension/chrome/dist/background.js`
 
 ## 🤝 Contributing
 
@@ -174,7 +131,6 @@ share_reading_watch_lists/
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
-
 
 ## 🙏 Acknowledgments
 

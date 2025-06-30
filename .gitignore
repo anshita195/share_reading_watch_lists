@@ -1,11 +1,25 @@
+# --- General ---
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# --- IDE/Editor ---
+.vscode/
+.idea/
+
+# --- Database ---
+# SQLite database file is created in the instance folder by default
+instance/
+
+# --- Large Files ---
+# Ignore LLM model files
+*.gguf
+
 # Ignore SQLite database
 app.db
 *.sqlite
 *.sqlite3
-
-# Python cache
-__pycache__/
-*.pyc
 
 # Node modules
 node_modules/
