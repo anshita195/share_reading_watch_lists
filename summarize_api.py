@@ -123,6 +123,27 @@ def add_item():
         'timestamp': new_item.timestamp.isoformat()
     }), 201
 
+@app.route('/item/<int:item_id>', methods=['DELETE', 'OPTIONS'])
+def delete_item(item_id):
+    if request.method == 'OPTIONS':
+        return '', 200 # Preflight-OK
+        
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    item = Item.query.get(item_id)
+
+    if not item:
+        return jsonify({'error': 'Item not found'}), 404
+
+    if item.user_id != session['user_id']:
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    db.session.delete(item)
+    db.session.commit()
+    
+    return jsonify({'message': 'Item deleted successfully'})
+
 @app.route('/user/<username>/items', methods=['GET'])
 def get_user_items(username):
     app.logger.info(f"GET /user/{username}/items called")

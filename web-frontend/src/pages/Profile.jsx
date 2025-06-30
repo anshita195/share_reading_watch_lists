@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Typography, Paper, Grid, Card, CardContent, Chip, Button, CircularProgress, Alert, Box, IconButton } from '@mui/material';
+import { Container, Typography, Paper, Grid, Card, CardContent, Chip, Button, CircularProgress, Alert, Box, IconButton, Tooltip } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function Profile({ username: propUsername }) {
   const params = useParams();
@@ -102,6 +103,30 @@ export default function Profile({ username: propUsername }) {
     }
   };
 
+  const handleDeleteItem = async (itemId) => {
+    // Optimistically remove the item from the UI
+    const originalItems = [...items];
+    setItems(items.filter(item => item.id !== itemId));
+
+    try {
+      const res = await fetch(`http://localhost:5000/item/${itemId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        // If the deletion fails, revert the UI change
+        setItems(originalItems);
+        const data = await res.json();
+        setError(data.error || 'Failed to delete item');
+      }
+    } catch (err) {
+      // If there's a network error, revert the UI change
+      setItems(originalItems);
+      setError('Network error, failed to delete item.');
+    }
+  };
+
   const handleSummarizeAll = async () => {
     setSummarizing(true);
     const updatedItems = await Promise.all(items.map(async (item) => {
@@ -174,7 +199,30 @@ export default function Profile({ username: propUsername }) {
           <Grid item xs={12} sm={6} md={4} key={item.id || item.url}>
             <Card sx={{ minHeight: 180 }}>
               <CardContent>
-                <Chip label={item.type === 'article' ? 'Article' : 'Video'} color={item.type === 'article' ? 'primary' : 'secondary'} sx={{ mb: 1 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <Chip 
+                    label={item.type === 'article' ? 'Article' : 'Video'} 
+                    color={item.type === 'article' ? 'primary' : 'secondary'} 
+                    size="small" 
+                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                      {new Date(item.timestamp).toLocaleDateString()}
+                    </Typography>
+                    {isOwnProfile && (
+                      <Tooltip title="Delete Item">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteItem(item.id)}
+                          color="error"
+                          sx={{ p: 0 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                </Box>
                 <Typography variant="h6" gutterBottom>{item.title}</Typography>
                 {item.url && <Typography variant="body2" sx={{ mb: 1 }}><a href={item.url} target="_blank" rel="noopener noreferrer">View Original</a></Typography>}
                 <Typography variant="body2" color="text.secondary">

@@ -6,6 +6,9 @@ let model = null;
 let recentTracked = {}; // url: timestamp
 const TRACK_DEDUP_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 
+const VIDEO_SITES = ['youtube.com', 'vimeo.com', 'dailymotion.com', 'twitch.tv'];
+const SEARCH_ENGINES = ['google.com', 'bing.com', 'duckduckgo.com', 'yahoo.com', 'baidu.com', 'yandex.ru'];
+
 async function initializeLLM() {
   try {
     // TODO: Initialize WebLLM with Gemma-3-1b
@@ -35,17 +38,41 @@ function isValidPageData(pageData, username) {
   );
 }
 
-function shouldTrack(url) {
+function shouldTrack(url, title) {
   const now = Date.now();
   if (recentTracked[url] && now - recentTracked[url] < TRACK_DEDUP_WINDOW_MS) {
-    return false;
+    return { track: false, type: null };
   }
-  recentTracked[url] = now;
-  // Clean up old entries
-  for (const k in recentTracked) {
-    if (now - recentTracked[k] > TRACK_DEDUP_WINDOW_MS) delete recentTracked[k];
+
+  try {
+    const urlObject = new URL(url);
+    const hostname = urlObject.hostname.replace(/^www\./, '');
+
+    // Don't track search engine results pages
+    if (SEARCH_ENGINES.some(engine => hostname.includes(engine)) && (urlObject.pathname.includes('/search') || urlObject.pathname.includes('/search.php'))) {
+      return { track: false, type: null };
+    }
+    
+    // Check for video sites
+    if (VIDEO_SITES.some(site => hostname.includes(site))) {
+      recentTracked[url] = now;
+      return { track: true, type: 'video' };
+    }
+    
+    // Check title length for articles - simple heuristic
+    // Ignore short titles, likely not articles
+    const titleWords = title.trim().split(/\s+/);
+    if (titleWords.length > 4) {
+       recentTracked[url] = now;
+       return { track: true, type: 'article' };
+    }
+
+    return { track: false, type: null };
+
+  } catch (e) {
+    console.error("Error parsing URL for tracking:", e);
+    return { track: false, type: null };
   }
-  return true;
 }
 
 // Track page visits
@@ -69,8 +96,14 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       });
       console.log('Script executed, results:', results);
       const pageData = results.result;
-      const type = pageData.url.includes('youtube.com') ? 'video' : 'article';
-
+      
+      const { track, type } = shouldTrack(pageData.url, pageData.title);
+      
+      if (!track) {
+        console.log('Skipping track based on URL/title:', pageData.url);
+        return;
+      }
+      
       console.log('About to fetch', pageData);
       chrome.storage.local.get(['username', 'trackedPages'], (result) => {
         const username = result.username;
@@ -78,12 +111,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           console.warn('Invalid page data or username, skipping:', pageData, username);
           return;
         }
-        if (!shouldTrack(pageData.url)) {
-          console.log('Duplicate track within window, skipping:', pageData.url);
-          return;
-        }
         // Try backend first
-        fetch('http://127.0.0.1:5000/items', {
+        fetch('http://localhost:5000/items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -122,22 +151,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const pageData = message.data;
     chrome.storage.local.get(['username', 'trackedPages'], (result) => {
       const username = result.username;
+      const { track, type } = shouldTrack(pageData.url, pageData.title);
+
+      if (!track) {
+        console.log('Skipping track from message based on URL/title:', pageData.url);
+        return;
+      }
+
       if (!isValidPageData(pageData, username)) {
         console.warn('Invalid page data or username, skipping:', pageData, username);
         return;
       }
-      if (!shouldTrack(pageData.url)) {
-        console.log('Duplicate track within window, skipping:', pageData.url);
-        return;
-      }
+
       // Try backend first
-      fetch('http://127.0.0.1:5000/items', {
+      fetch('http://localhost:5000/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: pageData.title,
           url: pageData.url,
-          type: pageData.isVideo ? 'video' : 'article',
+          type: type,
           username: username
         }),
       })
@@ -166,7 +199,7 @@ self.testBackend = function() {
       console.error('No username set in extension storage!');
       return;
     }
-    fetch('http://127.0.0.1:5000/items', {
+    fetch('http://localhost:5000/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
