@@ -28,16 +28,13 @@ Most tools (Notion, Substack, etc.) require manual curation. This project aims f
 - Export your tracked list as JSON (extension)
 - Import your list into the web app
 - View your reading/watch list on your profile page
-- Generate AI summaries for each item (local LLM, title-based only)
+- Generate AI summaries for each item (local LLM)
 - Public feed/profile (demo only)
 
 ## Limitations & Assumptions
-- **Summaries are speculative and based only on titles.** No article scraping or video transcript analysis.
-- **Manual export/import** is required between extension and web app.
 - **No authentication security**—demo only, not production-ready.
 - **All LLM inference is local, on CPU, with a small model (<1GB, e.g. TinyLlama-1.1B).**
 - **No cloud backend, no production deployment, no extension store listing.**
-- **No real-time following or social features.**
 - **English content only.**
 
 ## Setup & Running (for Testing)
@@ -111,13 +108,6 @@ share_reading_watch_lists/
 ├── requirements.txt       # Python dependencies
 └── README.md
 ```
-
-## Potential/Future Features
-- In-browser LLM (webLLM) for true extension-side summarization
-- Real article/video transcript scraping
-- Real-time sync and following
-- Extension store listing
-- Production-ready authentication and deployment
 
 ## Acknowledgments
 - TinyLlama team for the lightweight LLM
