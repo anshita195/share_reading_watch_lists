@@ -14,8 +14,6 @@ Effortlessly track and share what you read and watch online. This project consis
   - Shows a public feed of all imported items (demo only).
 
 **Note:**
-- Summaries are generated based only on the title (not the full article or video transcript).
-- There is no real-time sync between extension and web app; you must export/import manually.
 - There is no in-browser LLM; all summarization is done via a local Python server.
 - No Chrome/Firefox store listing yet; extension must be loaded manually.
 
@@ -33,7 +31,7 @@ Most tools (Notion, Substack, etc.) require manual curation. This project aims f
 
 ## Limitations & Assumptions
 - **No authentication security**—demo only, not production-ready.
-- **All LLM inference is local, on CPU, with a small model (<1GB, e.g. TinyLlama-1.1B).**
+- **All LLM inference is local, on CPU, with a small model (<1GB).**
 - **No cloud backend, no production deployment, no extension store listing.**
 - **English content only.**
 
